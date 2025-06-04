@@ -1,0 +1,46 @@
+from flask import Flask, request, jsonify
+from datetime import datetime
+import json
+import os
+
+app = Flask(__name__)
+DATA_FILE = 'donations.json'
+
+# Helper function to load existing donations
+def load_donations():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+# Helper function to save new donation
+def save_donations(data):
+    with open(DATA_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
+@app.route('/donate', methods=['POST'])
+def donate():
+    data = request.get_json()
+    name = data.get('name')
+    amount = data.get('amount')
+
+    if not name or not amount:
+        return jsonify({'error': 'Name and amount required'}), 400
+
+    donation = {
+        'name': name,
+        'amount': amount,
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+
+    if amount > 10000:
+        donation['high_value'] = True
+
+    donations = load_donations()
+    donations.append(donation)
+    save_donations(donations)
+
+    return jsonify({'message': 'Donation received successfully!', 'data': donation}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)
